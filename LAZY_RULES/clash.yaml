@@ -1,8 +1,8 @@
-# 2019-03-10 18:17:37
 #---------------------------------------------------#
 ## 配置文件需要放置在 $HOME/.config/clash/config.yml
 ## 
-## 如果您不知道如何操作，请参阅 SS-Rule-Snippet 的 Wiki： https://github.com/Hackl0us/SS-Rule-Snippet/wiki/clash(X)
+## 如果您不知道如何操作，请参阅 SS-Rule-Snippet 的 Wiki：
+## https://github.com/Hackl0us/SS-Rule-Snippet/wiki/clash(X)
 #---------------------------------------------------#
 
 # HTTP 代理端口
@@ -32,43 +32,82 @@ external-controller: 127.0.0.1:9090
 # external-ui: folder
 
 # RESTful API 的口令 (可选)
-secret: ""
+# secret: ""
+
+# 实验性功能
+experimental:
+  ignore-resolve-fail: true # 忽略 DNS 解析失败，默认值为 true
+
+# 本地 SOCKS5 / HTTP(S) 服务认证
+# authentication:
+#  - "user1:pass1"
+#  - "user2:pass2"
 
 dns:
   enable: true
   ipv6: false
   # listen: 0.0.0.0:53
-  # enhanced-mode: redir-host
+  # enhanced-mode: redir-host # 或 fake-ip
+  # # fake-ip-range: 198.18.0.1/16 # 如果你不知道这个参数的作用，请勿修改
+  # # 实验性功能 hosts, 支持通配符 (例如 *.clash.dev 甚至 *.foo.*.example.com)
+  # # 静态的域名 比 通配域名 具有更高的优先级 (foo.example.com 优先于 *.example.com)
+  # # 注意: hosts 在 fake-ip 模式下不生效
+  # hosts:
+  #   '*.clash.dev': 127.0.0.1
+  #   'alpha.clash.dev': '::1'
+
   nameserver:
      - 1.2.4.8
      - 114.114.114.114
      - 223.5.5.5
      - tls://dns.rubyfish.cn:853
+     #- https://dns.rubyfish.cn/dns-query
      
   fallback: # 与 nameserver 内的服务器列表同时发起请求，当规则符合 GEOIP 在 CN 以外时，fallback 列表内的域名服务器生效。
      - tls://dns.rubyfish.cn:853
-     - tls://dns.google
+     - tls://1.0.0.1:853
+     - tls://dns.google:853
 
-# clash DNS 请求逻辑：
-# (1) 当访问一个域名时， nameserver 与 fallback 列表内的所有服务器并发请求，得到域名对应的 IP 地址。
-# (2) clash 将选取 nameserver 列表内，解析最快的结果。
-# (3) 若解析结果中，IP 地址属于 国外，那么 clash 将选择 fallback 列表内，解析最快的结果。
+     #- https://dns.rubyfish.cn/dns-query
+     #- https://cloudflare-dns.com/dns-query
+     #- https://dns.google/dns-query
+
+# 1. clash DNS 请求逻辑：
+#   (1) 当访问一个域名时， nameserver 与 fallback 列表内的所有服务器并发请求，得到域名对应的 IP 地址。
+#   (2) clash 将选取 nameserver 列表内，解析最快的结果。
+#   (3) 若解析结果中，IP 地址属于 国外，那么 clash 将选择 fallback 列表内，解析最快的结果。
 #
-# 因此，我在 nameserver 和 fallback 内都放置了无污染、解析速度较快的国内 DNS 服务器，以达到最快的解析速度。
-# 但是 fallback 列表内服务器会用在解析境外网站，为了结果绝对无污染，我仅保留了支持 DoT/DoH 的两个服务器。
+#   因此，我在 nameserver 和 fallback 内都放置了无污染、解析速度较快的国内 DNS 服务器，以达到最快的解析速度。
+#   但是 fallback 列表内服务器会用在解析境外网站，为了结果绝对无污染，我仅保留了支持 DoT/DoH 的两个服务器。
 # 
-# 注意：
-# (1) 如果您为了确保 DNS 解析结果无污染，请仅保留列表内以 tls:// 开头的 DNS 服务器，但是通常对于国内没有太大必要。
-# (2) 如果您不在乎可能解析到污染的结果，更加追求速度。请将 nameserver 列表的服务器插入至 fallback 列表内，并移除重复项。
+# 2. clash DNS 配置注意事项：
+#   (1) 如果您为了确保 DNS 解析结果无污染，请仅保留列表内以 tls:// 或 https:// 开头的 DNS 服务器，但是通常对于国内域名没有必要。
+#   (2) 如果您不在乎可能解析到污染的结果，更加追求速度。请将 nameserver 列表的服务器插入至 fallback 列表内，并移除重复项。
+# 
+# 3. 关于 DNS over HTTPS (DoH) 和 DNS over TLS (DoT) 的选择：
+#   对于两项技术双方各执一词，而且会无休止的争论，各有利弊。各位请根据具体需求自行选择，但是配置文件内默认启用 DoT，因为目前国内没有封锁或管制。
+#   DoH: 以 https:// 开头的 DNS 服务器。拥有更好的伪装性，且几乎不可能被运营商或网络管理封锁，但查询效率和安全性可能略低。
+#   DoT: 以 tls:// 开头的 DNS 服务器。拥有更高的安全性和查询效率，但端口有可能被管制或封锁。
+#   若要了解更多关于 DoH/DoT 相关技术，请自行查阅规范文档。
+
+# fallback-filter:
+    #   geoip: true # 默认
+    #   ipcidr: # 在这个网段内的 IP 地址会被考虑为被污染的 IP
+    #     - 240.0.0.0/4
 
 Proxy:
-
 # shadowsocks
 # 所支持的加密方式与 go-shadowsocks2 保持一致
-# 支持加密方式： AEAD_AES_128_GCM AEAD_AES_192_GCM AEAD_AES_256_GCM AEAD_CHACHA20_POLY1305 AES-128-CTR AES-192-CTR AES-256-CTR AES-128-CFB AES-192-CFB AES-256-CFB CHACHA20-IETF XCHACHA20 
-# clash 额外支持 chacha20 rc4-md5 xchacha20-ietf-poly1305 加密方式
+# 支持加密方式： 
+#   aes-128-gcm aes-192-gcm aes-256-gcm
+#   aes-128-cfb aes-192-cfb aes-256-cfb
+#   aes-128-ctr aes-192-ctr aes-256-ctr
+#   rc4-md5 chacha20 chacha20-ietf xchacha20
+#   chacha20-ietf-poly1305 xchacha20-ietf-poly1305
 
-- name: "ss1"
+- { name: "ss1", type: ss, server: server, port: 443, cipher: chacha20-ietf-poly1305, password: "password", udp: true }
+
+- name: "ss2"
   type: ss
   server: server
   port: 443
@@ -79,7 +118,7 @@ Proxy:
     mode: tls # 混淆模式，可以选择 http 或 tls
     host: bing.com # 混淆域名，需要和服务器配置保持一致
 
-- name: "ss2"
+- name: "ss3"
   type: ss
   server: server
   port: 443
@@ -92,6 +131,8 @@ Proxy:
     # skip-cert-verify: true
     # host: bing.com
     # path: "/"
+    # headers:
+    #   custom: value
 
 # vmess
 # 支持加密方式：auto / aes-128-gcm / chacha20-poly1305 / none
@@ -140,10 +181,10 @@ Proxy Group:
 
 Rule:
 # Apple
-- DOMAIN,hls.itunes.apple.com,Proxy
-- DOMAIN,itunes.apple.com,Proxy
-- DOMAIN,itunes.com,Proxy
-- DOMAIN-SUFFIX,digicert.com,DIRECT
+- DOMAIN-SUFFIX,apps.apple.com,Proxy
+- DOMAIN-SUFFIX,itunes.apple.com,Proxy
+- DOMAIN-SUFFIX,blobstore.apple.com,Proxy
+- DOMAIN-SUFFIX,music.apple.com,DIRECT
 - DOMAIN-SUFFIX,icloud.com,DIRECT
 - DOMAIN-SUFFIX,icloud-content.com,DIRECT
 - DOMAIN-SUFFIX,me.com,DIRECT
@@ -152,6 +193,7 @@ Rule:
 - DOMAIN-SUFFIX,aaplimg.com,DIRECT
 - DOMAIN-SUFFIX,cdn-apple.com,DIRECT
 - DOMAIN-SUFFIX,apple.com,DIRECT
+- DOMAIN-SUFFIX,apple-cloudkit.com,DIRECT
 #- DOMAIN,e.crashlytics.com,REJECT //注释此选项有助于大多数App开发者分析崩溃信息；如果您拒绝一切崩溃数据统计、搜集，请取消 # 注释。
 
 
@@ -251,6 +293,7 @@ Rule:
 - DOMAIN-SUFFIX,segmentfault.com,DIRECT
 - DOMAIN-SUFFIX,sinaapp.com,DIRECT
 - DOMAIN-SUFFIX,smzdm.com,DIRECT
+- DOMAIN-SUFFIX,snapdrop.net,DIRECT
 - DOMAIN-SUFFIX,sogou.com,DIRECT
 - DOMAIN-SUFFIX,sogoucdn.com,DIRECT
 - DOMAIN-SUFFIX,sohu.com,DIRECT
@@ -267,7 +310,6 @@ Rule:
 - DOMAIN-SUFFIX,umetrip.com,DIRECT
 - DOMAIN-SUFFIX,upaiyun.com,DIRECT
 - DOMAIN-SUFFIX,upyun.com,DIRECT
-- DOMAIN-SUFFIX,v2ex.com,DIRECT
 - DOMAIN-SUFFIX,veryzhun.com,DIRECT
 - DOMAIN-SUFFIX,weather.com,DIRECT
 - DOMAIN-SUFFIX,weibo.com,DIRECT
@@ -287,6 +329,7 @@ Rule:
 - DOMAIN-SUFFIX,zhihu.com,DIRECT
 - DOMAIN-SUFFIX,zhimg.com,DIRECT
 - DOMAIN-SUFFIX,zimuzu.tv,DIRECT
+- DOMAIN-SUFFIX,zoho.com,DIRECT
 
 # 抗 DNS 污染 
 - DOMAIN-KEYWORD,amazon,Proxy
@@ -317,6 +360,7 @@ Rule:
 - DOMAIN-KEYWORD,dwtrack,REJECT
 - DOMAIN-KEYWORD,guanggao,REJECT
 - DOMAIN-KEYWORD,lianmeng,REJECT
+- DOMAIN-SUFFIX,mmstat.com,REJECT
 - DOMAIN-KEYWORD,omgmta,REJECT
 - DOMAIN-KEYWORD,openx,REJECT
 - DOMAIN-KEYWORD,partnerad,REJECT
@@ -436,6 +480,7 @@ Rule:
 - DOMAIN-SUFFIX,hockeyapp.net,Proxy
 - DOMAIN-SUFFIX,hotmail.com,Proxy
 - DOMAIN-SUFFIX,icons8.com,Proxy
+- DOMAIN-SUFFIX,ifixit.com,Proxy
 - DOMAIN-SUFFIX,ift.tt,Proxy
 - DOMAIN-SUFFIX,ifttt.com,Proxy
 - DOMAIN-SUFFIX,iherb.com,Proxy
@@ -564,6 +609,7 @@ Rule:
 - DOMAIN-SUFFIX,urchin.com,Proxy
 - DOMAIN-SUFFIX,usertrust.com,Proxy
 - DOMAIN-SUFFIX,v.gd,Proxy
+- DOMAIN-SUFFIX,v2ex.com,Proxy
 - DOMAIN-SUFFIX,vimeo.com,Proxy
 - DOMAIN-SUFFIX,vimeocdn.com,Proxy
 - DOMAIN-SUFFIX,vine.co,Proxy
